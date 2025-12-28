@@ -58,3 +58,8 @@ app.*.map.json
 # Flutter / Dart
 .build/
 .flutter-plugins
+
+# Android signing
+android/key.properties
+**/*.jks
+**/*.keystore
