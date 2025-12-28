@@ -1,0 +1,37 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [ "node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local" ],
+      "predeploy": [
+        "cd functions && npm run lint",
+        "cd functions && npm run build"
+      ]
+    }
+  ],
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "primeform-app",
+          "appId": "1:682188599088:android:de2c7cba5dfed4cedde2f5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "primeform-app",
+          "configurations": {
+            "android": "1:682188599088:android:de2c7cba5dfed4cedde2f5",
+            "ios": "1:682188599088:ios:8f3f51142c7682e1dde2f5",
+            "macos": "1:682188599088:ios:8f3f51142c7682e1dde2f5",
+            "web": "1:682188599088:web:8e8cadcb75aa681cdde2f5",
+            "windows": "1:682188599088:web:af12b46729342befdde2f5"
+          }
+        }
+      }
+    }
+  }
+}
