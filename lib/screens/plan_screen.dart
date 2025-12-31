@@ -17,18 +17,28 @@ class PlanScreen extends ConsumerStatefulWidget {
 class _PlanScreenState extends ConsumerState<PlanScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _ageCtrl = TextEditingController(text: '40');
-  final _heightCtrl = TextEditingController(text: '175');
-  final _weightCtrl = TextEditingController(text: '75.2');
+  late TextEditingController _ageCtrl;
+  late TextEditingController _heightCtrl;
+  late TextEditingController _weightCtrl;
 
-  String _sex = 'male'; // ✅ NEW
+  String _sex = 'male';
   String _goal = 'cut';
   int _daysPerWeek = 4;
   String _equipment = 'gym access';
 
   bool _loading = false;
-  Map<String, dynamic>? _planJson; // holds returned JSON plan
-  String? _raw; // if model returns non-JSON
+  Map<String, dynamic>? _planJson;
+  String? _raw;
+
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ageCtrl = TextEditingController();
+    _heightCtrl = TextEditingController();
+    _weightCtrl = TextEditingController();
+  }
 
   @override
   void dispose() {
@@ -36,6 +46,25 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
     _heightCtrl.dispose();
     _weightCtrl.dispose();
     super.dispose();
+  }
+
+  void _initializeFromProfile() {
+    if (_initialized) return;
+
+    final profile = ref.read(userProfileProvider).value;
+    if (profile != null) {
+      _ageCtrl.text = profile.age.toString();
+      _heightCtrl.text = profile.heightCm.toString();
+      _weightCtrl.text = profile.weightKg.toString();
+      _sex = profile.sex;
+      _goal = profile.goal;
+      _daysPerWeek = profile.trainingDaysPerWeek;
+      _equipment = profile.equipment;
+
+      setState(() {
+        _initialized = true;
+      });
+    }
   }
 
   Future<void> _generatePlan() async {
@@ -52,7 +81,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 
       final res = await callable.call({
         "age": int.parse(_ageCtrl.text.trim()),
-        "sex": _sex, // ✅ use selected value
+        "sex": _sex,
         "heightCm": int.parse(_heightCtrl.text.trim()),
         "weightKg": double.parse(_weightCtrl.text.trim()),
         "goal": _goal,
@@ -116,25 +145,34 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Initialize from profile on first build
+    _initializeFromProfile();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Plan')),
+      appBar: AppBar(title: const Text('Create Nutrition Plan')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
             Text(
-              'Generate a plan with AI',
+              'Generate your plan with AI',
               style: theme.textTheme.headlineSmall,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            Text(
+              'Based on your profile and goals',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
 
             Form(
               key: _formKey,
               child: Column(
                 children: [
-                  // ✅ NEW: Sex selection
                   DropdownButtonFormField<String>(
-                    initialValue: _sex,
+                    value: _sex,
                     decoration: const InputDecoration(labelText: 'Sex'),
                     items: const [
                       DropdownMenuItem(value: 'male', child: Text('Male')),
@@ -172,19 +210,25 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
                   const SizedBox(height: 12),
 
                   DropdownButtonFormField<String>(
-                    initialValue: _goal,
+                    value: _goal,
                     decoration: const InputDecoration(labelText: 'Goal'),
                     items: const [
-                      DropdownMenuItem(value: 'cut', child: Text('Cut')),
-                      DropdownMenuItem(value: 'recomp', child: Text('Recomp')),
-                      DropdownMenuItem(value: 'bulk', child: Text('Bulk')),
+                      DropdownMenuItem(value: 'cut', child: Text('Fat Loss')),
+                      DropdownMenuItem(
+                        value: 'recomp',
+                        child: Text('Recomposition'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'bulk',
+                        child: Text('Muscle Gain'),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _goal = v ?? 'cut'),
                   ),
                   const SizedBox(height: 12),
 
                   DropdownButtonFormField<int>(
-                    initialValue: _daysPerWeek,
+                    value: _daysPerWeek,
                     decoration: const InputDecoration(
                       labelText: 'Training days / week',
                     ),
@@ -204,11 +248,16 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
                     onChanged: (v) => _equipment = v,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
                   FilledButton(
                     onPressed: _loading ? null : _generatePlan,
-                    child: Text(_loading ? 'Generating…' : 'Generate with AI'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        _loading ? 'Generating…' : 'Generate with AI',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -232,7 +281,10 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
               const SizedBox(height: 12),
               FilledButton.tonal(
                 onPressed: _savePlan,
-                child: const Text('Save Plan'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Save Plan'),
+                ),
               ),
             ],
 

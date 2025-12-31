@@ -19,22 +19,56 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
   int daysPerWeek = 4;
 
   bool loading = false;
-  Map<String, dynamic>? response; // {ok, template/raw}
+  Map<String, dynamic>? response;
+
+  bool _initialized = false;
+
+  void _initializeFromProfile() {
+    if (_initialized) return;
+
+    final profile = ref.read(userProfileProvider).value;
+    if (profile != null) {
+      setState(() {
+        sex = profile.sex;
+        level = profile.level;
+        equipment = profile.equipment;
+        daysPerWeek = profile.trainingDaysPerWeek;
+        _initialized = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final repo = ref.read(primeRepoProvider);
+
+    // Initialize from profile on first build
+    _initializeFromProfile();
 
     final ok = response?['ok'] == true;
     final template =
         ok ? Map<String, dynamic>.from(response!['template'] as Map) : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout Plan')),
+      appBar: AppBar(title: const Text('Create Workout Plan')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              'Generate your workout plan',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Based on your experience and equipment',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 24),
+
             // Sex + Level
             Row(
               children: [
@@ -67,7 +101,8 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                         child: Text('Advanced'),
                       ),
                     ],
-                    onChanged: (v) => setState(() => level = v ?? 'intermediate'),
+                    onChanged: (v) =>
+                        setState(() => level = v ?? 'intermediate'),
                     decoration: const InputDecoration(labelText: 'Level'),
                   ),
                 ),
@@ -80,9 +115,15 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
             DropdownButtonFormField<String>(
               value: equipment,
               items: const [
-                DropdownMenuItem(value: 'gym', child: Text('Gym')),
-                DropdownMenuItem(value: 'home_dumbbells', child: Text('Home (DB)')),
-                DropdownMenuItem(value: 'calisthenics', child: Text('Calisthenics')),
+                DropdownMenuItem(value: 'gym', child: Text('Full Gym')),
+                DropdownMenuItem(
+                  value: 'home_dumbbells',
+                  child: Text('Home (Dumbbells)'),
+                ),
+                DropdownMenuItem(
+                  value: 'calisthenics',
+                  child: Text('Bodyweight Only'),
+                ),
               ],
               onChanged: (v) => setState(() => equipment = v ?? 'gym'),
               decoration: const InputDecoration(labelText: 'Equipment'),
@@ -103,13 +144,13 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
               decoration: const InputDecoration(labelText: 'Training Days'),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             // Generate / Save
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
+                  child: FilledButton(
                     onPressed: loading
                         ? null
                         : () async {
@@ -132,12 +173,15 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                               setState(() => loading = false);
                             }
                           },
-                    child: Text(loading ? 'Generating...' : 'Generate'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(loading ? 'Generating...' : 'Generate'),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
+                  child: FilledButton.tonal(
                     onPressed: (loading || !(response?['ok'] == true))
                         ? null
                         : () async {
@@ -151,12 +195,15 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Saved workout plan'),
+                                  content: Text('Workout plan saved ✅'),
                                 ),
                               );
                             }
                           },
-                    child: const Text('Save'),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Save'),
+                    ),
                   ),
                 ),
               ],
@@ -198,8 +245,7 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                     itemCount: days.length,
                     itemBuilder: (context, i) {
                       final day = days[i];
-                      final title =
-                          day['title']?.toString() ?? 'Day ${i + 1}';
+                      final title = day['title']?.toString() ?? 'Day ${i + 1}';
 
                       final rawExercises = day['exercises'];
                       if (rawExercises is! List) {

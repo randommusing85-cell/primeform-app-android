@@ -1,11 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:primeform_app/repos/prime_repo.dart';
+import 'package:primeform_app/repos/user_profile_repo.dart';
 import 'package:primeform_app/models/checkin.dart';
 import 'package:primeform_app/models/prime_plan.dart';
 import 'package:primeform_app/models/workout_template_doc.dart';
+import 'package:primeform_app/models/user_profile.dart';
 
 final primeRepoProvider = Provider<PrimeRepo>((ref) => PrimeRepo());
+
+final userProfileRepoProvider = Provider<UserProfileRepo>(
+  (ref) => UserProfileRepo(),
+);
+
+final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
+  final repo = ref.watch(userProfileRepoProvider);
+  return repo.getProfile();
+});
 
 final latestCheckInsStreamProvider = StreamProvider.autoDispose<List<CheckIn>>((
   ref,
@@ -55,4 +66,3 @@ final todayWorkoutDayProvider = FutureProvider<int?>((ref) async {
   // If last session isn't completed and it's from a previous day, keep it (carry forward).
   return last.dayIndex;
 });
-

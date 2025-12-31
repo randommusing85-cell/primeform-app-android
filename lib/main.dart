@@ -11,6 +11,8 @@ import 'screens/my_plan_screen.dart';
 import 'screens/workout_plan_screen.dart';
 import 'screens/my_workout_plan_screen.dart';
 import 'screens/today_workout_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'state/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,9 +34,10 @@ class PrimeFormApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      initialRoute: '/',
+      home: const AppInitializer(),
       routes: {
-        '/': (context) => const HomeScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/onboarding': (context) => const OnboardingScreen(),
         '/plan': (context) => const PlanScreen(),
         '/checkin': (context) => const CheckInScreen(),
         '/trends': (context) => const TrendsScreen(),
@@ -42,6 +45,50 @@ class PrimeFormApp extends ConsumerWidget {
         '/workout': (context) => const WorkoutPlanScreen(),
         '/my-workout': (context) => const MyWorkoutPlanScreen(),
         '/today-workout': (context) => const TodayWorkoutScreen(),
+      },
+    );
+  }
+}
+
+/// Checks if user profile exists and routes accordingly
+class AppInitializer extends ConsumerWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading app: $e'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(userProfileProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (profile) {
+        // If no profile exists, show onboarding
+        if (profile == null) {
+          return const OnboardingScreen();
+        }
+
+        // Profile exists, show home screen
+        return const HomeScreen();
       },
     );
   }
