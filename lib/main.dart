@@ -3,21 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'screens/app_shell.dart';
 import 'screens/plan_screen.dart';
 import 'screens/checkin_screen.dart';
-import 'screens/trends_screen.dart';
 import 'screens/my_plan_screen.dart';
 import 'screens/workout_plan_screen.dart';
 import 'screens/my_workout_plan_screen.dart';
 import 'screens/today_workout_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/setup_guide_screen.dart';
+import 'screens/nutrition_screen.dart';
+import 'screens/trends_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/injury_settings_screen.dart';
+import 'screens/notification_settings_screen.dart';
+import 'services/notification_service.dart';
 import 'state/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize notification service
+  await NotificationService().init();
 
   runApp(const ProviderScope(child: PrimeFormApp()));
 }
@@ -36,15 +45,20 @@ class PrimeFormApp extends ConsumerWidget {
       ),
       home: const AppInitializer(),
       routes: {
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const AppShell(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/plan': (context) => const PlanScreen(),
         '/checkin': (context) => const CheckInScreen(),
-        '/trends': (context) => const TrendsScreen(),
         '/myplan': (context) => const MyPlanScreen(),
         '/workout': (context) => const WorkoutPlanScreen(),
         '/my-workout': (context) => const MyWorkoutPlanScreen(),
         '/today-workout': (context) => const TodayWorkoutScreen(),
+        '/setup-guide': (context) => const SetupGuideScreen(),
+        '/nutrition': (context) => const NutritionScreen(),
+        '/trends': (context) => const TrendsScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/settings/injuries': (context) => const InjurySettingsScreen(),
+        '/settings/notifications': (context) => const NotificationSettingsScreen(),
       },
     );
   }
@@ -87,8 +101,11 @@ class AppInitializer extends ConsumerWidget {
           return const OnboardingScreen();
         }
 
-        // Profile exists, show home screen
-        return const HomeScreen();
+        // Setup notifications based on profile
+        NotificationService().setupNotifications(profile);
+
+        // Profile exists, show app shell with bottom nav
+        return const AppShell();
       },
     );
   }

@@ -24,6 +24,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _equipment = 'gym';
   int _trainingDays = 4;
 
+  // Cycle Tracking Variables
+  bool _trackCycle = false;
+  DateTime? _lastPeriodDate;
+  int _cycleLength = 28;
+
+  // Post-Partum Variables
+  String _postPartumStatus = 'no';
+  DateTime? _deliveryDate;
+  bool _medicalClearance = false;
+  bool _checkDiastasis = false;
+  String _deliveryType = 'unknown';
+
   bool _saving = false;
 
   @override
@@ -36,6 +48,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validate cycle tracking data if enabled
+    if (_trackCycle && _lastPeriodDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select your last period start date'),
+        ),
+      );
+      return;
+    }
+
+    // Validate post-partum data if applicable
+    if (_postPartumStatus != 'no') {
+      if (_deliveryDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your delivery date'),
+          ),
+        );
+        return;
+      }
+
+      if (!_medicalClearance) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Medical clearance is required for post-partum exercise'),
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() => _saving = true);
 
@@ -50,7 +93,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ..equipment = _equipment
         ..trainingDaysPerWeek = _trainingDays
         ..createdAt = DateTime.now()
-        ..updatedAt = DateTime.now();
+        ..updatedAt = DateTime.now()
+        // Cycle Tracking Fields
+        ..trackCycle = _trackCycle
+        ..lastPeriodDate = _lastPeriodDate
+        ..cycleLength = _cycleLength
+        ..periodDuration = 5
+        // Post-Partum Fields
+        ..postPartumStatus = _postPartumStatus
+        ..deliveryDate = _deliveryDate
+        ..medicalClearance = _medicalClearance
+        ..checkDiastasis = _checkDiastasis
+        ..deliveryType = _deliveryType;
 
       final repo = ref.read(userProfileRepoProvider);
       await repo.saveProfile(profile);
@@ -60,9 +114,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       if (!mounted) return;
 
-      // Navigate to home and remove onboarding from stack
+      // Navigate to home screen
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
+        '/setup-guide',
         (route) => false,
       );
     } catch (e) {
@@ -90,6 +144,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              // Philosophy Introduction
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Our Philosophy',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'PrimeForm is built on one principle: consistency over perfection.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'We understand women\'s bodies - cycles, post-partum recovery, and real-life challenges. We\'ll guide you safely and smartly.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               Text(
                 'Let\'s set up your profile',
                 style: theme.textTheme.headlineSmall,
@@ -261,6 +362,256 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
                 onChanged: (v) => setState(() => _trainingDays = v ?? 4),
               ),
+
+              // ===== WOMEN'S HEALTH SECTION (Female Only) =====
+              if (_sex == 'female') ...[
+                const SizedBox(height: 32),
+                
+                Divider(color: theme.colorScheme.outlineVariant),
+                
+                const SizedBox(height: 16),
+                
+                Row(
+                  children: [
+                    Icon(Icons.favorite, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Women\'s Health',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 8),
+                
+                Text(
+                  'Help us understand your body for smarter, safer training',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+
+                // ===== POST-PARTUM STATUS =====
+                const SizedBox(height: 24),
+
+                Text('Post-Partum Status', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 12),
+
+                DropdownButtonFormField<String>(
+                  value: _postPartumStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Are you post-partum?',
+                    helperText: 'Helps us provide safe guidance',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'no', child: Text('No')),
+                    DropdownMenuItem(
+                      value: 'early',
+                      child: Text('Yes (0-12 weeks)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'mid',
+                      child: Text('Yes (3-6 months)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'late',
+                      child: Text('Yes (6-18 months)'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _postPartumStatus = v ?? 'no'),
+                ),
+
+                if (_postPartumStatus != 'no') ...[
+                  const SizedBox(height: 12),
+
+                  // Medical clearance warning
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.health_and_safety,
+                          color: Colors.orange.shade700,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Important: Only start exercising after getting medical clearance from your doctor (usually 6+ weeks post-delivery, 8+ for C-section).',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  ListTile(
+                    leading: const Icon(Icons.calendar_today),
+                    title: const Text('Delivery date'),
+                    subtitle: Text(
+                      _deliveryDate == null
+                          ? 'Tap to select'
+                          : '${_deliveryDate!.day}/${_deliveryDate!.month}/${_deliveryDate!.year}',
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _deliveryDate ?? DateTime.now(),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 545)), // 18 months
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _deliveryDate = picked);
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  DropdownButtonFormField<String>(
+                    value: _deliveryType,
+                    decoration: const InputDecoration(
+                      labelText: 'Delivery type',
+                      helperText: 'Affects recovery timeline',
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'unknown',
+                        child: Text('Prefer not to say'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'vaginal',
+                        child: Text('Vaginal birth'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'cesarean',
+                        child: Text('C-section'),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _deliveryType = v ?? 'unknown'),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  CheckboxListTile(
+                    value: _medicalClearance,
+                    onChanged: (v) => setState(() => _medicalClearance = v ?? false),
+                    title: const Text('I have medical clearance to exercise'),
+                    subtitle: const Text('Required to proceed'),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+
+                  if (_postPartumStatus == 'early' ||
+                      _postPartumStatus == 'mid') ...[
+                    CheckboxListTile(
+                      value: _checkDiastasis,
+                      onChanged: (v) => setState(() => _checkDiastasis = v ?? false),
+                      title: const Text('Check for diastasis recti guidance'),
+                      subtitle: const Text('We\'ll provide core-safe exercises'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                  ],
+                ],
+
+                // ===== CYCLE TRACKING =====
+                const SizedBox(height: 24),
+
+                Text('Cycle-Aware Training', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 12),
+
+                // Info card explaining benefit
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Your menstrual cycle affects energy and recovery. Track it for smarter training adjustments.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Toggle switch
+                SwitchListTile(
+                  value: _trackCycle,
+                  onChanged: (v) => setState(() => _trackCycle = v),
+                  title: const Text('Track my cycle for better training'),
+                  subtitle: const Text('Optional but recommended'),
+                ),
+
+                // Show date picker if tracking enabled
+                if (_trackCycle) ...[
+                  const SizedBox(height: 12),
+
+                  ListTile(
+                    leading: const Icon(Icons.calendar_today),
+                    title: const Text('Last period start date'),
+                    subtitle: Text(
+                      _lastPeriodDate == null
+                          ? 'Tap to select'
+                          : '${_lastPeriodDate!.day}/${_lastPeriodDate!.month}/${_lastPeriodDate!.year}',
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _lastPeriodDate ?? DateTime.now(),
+                        firstDate: DateTime.now()
+                            .subtract(const Duration(days: 60)),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => _lastPeriodDate = picked);
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  DropdownButtonFormField<int>(
+                    value: _cycleLength,
+                    decoration: const InputDecoration(
+                      labelText: 'Average cycle length (days)',
+                      helperText: 'Typical range: 21-35 days',
+                    ),
+                    items: List.generate(15, (i) => i + 21).map((days) {
+                      return DropdownMenuItem(
+                        value: days,
+                        child: Text('$days days'),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setState(() => _cycleLength = v ?? 28),
+                  ),
+                ],
+              ],
 
               const SizedBox(height: 32),
 

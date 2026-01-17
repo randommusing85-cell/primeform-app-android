@@ -12,4 +12,7 @@ class CheckIn {
   late int stepsToday;
 
   String? note;
+  
+  // Macros removed - now tracked in MealLog
+  // Daily macro totals calculated from MealLog entries
 }

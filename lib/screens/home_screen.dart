@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import '../widgets/weekly_progress_card.dart';
+import '../widgets/cycle_phase_card.dart';
+import '../widgets/postpartum_status_card.dart';
+import '../widgets/macro_adherence_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,17 +20,6 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('PrimeForm'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // TODO: Navigate to settings screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings coming soon')),
-              );
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -60,6 +53,18 @@ class HomeScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
+            // Weekly Progress Indicator
+            const WeeklyProgressCard(),
+            const SizedBox(height: 16),
+
+            // Post-Partum Status (only shows if post-partum)
+            const PostPartumStatusCard(),
+
+            // Cycle Phase (only shows if tracking cycles)
+            const CyclePhaseCard(),
+
+            const SizedBox(height: 16),
+
             // 1. TODAY'S WORKOUT CARD
             _TodayWorkoutCard(workoutTemplateAsync: workoutTemplateAsync),
 
@@ -70,57 +75,15 @@ class HomeScreen extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // 3. QUICK STATS CARD
+            // 3. MACRO ADHERENCE CARD
+            const MacroAdherenceCard(),
+
+            const SizedBox(height: 16),
+
+            // 4. QUICK STATS CARD
             _QuickStatsCard(checkInsAsync: checkInsAsync),
 
             const SizedBox(height: 32),
-
-            // Secondary Actions (less prominent)
-            Text(
-              'Manage Plans',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, '/myplan'),
-                    icon: const Icon(Icons.restaurant_menu, size: 18),
-                    label: const Text('Nutrition'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/my-workout'),
-                    icon: const Icon(Icons.fitness_center, size: 18),
-                    label: const Text('Workout'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/trends'),
-              icon: const Icon(Icons.trending_up, size: 18),
-              label: const Text('View Trends & Progress'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
           ],
         ),
       ),
@@ -191,7 +154,7 @@ class _TodayWorkoutCard extends StatelessWidget {
                     );
                   }
                   return Text(
-                    'Ready to train • Tap to start',
+                    'Ready to train | Tap to start',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onPrimaryContainer,
                     ),
@@ -268,9 +231,7 @@ class _DailyCheckInCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hasCheckedIn
-                              ? 'Check-in Complete ✓'
-                              : 'Daily Check-in',
+                          hasCheckedIn ? 'Check-in Complete' : 'Daily Check-in',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: hasCheckedIn
                                 ? theme.colorScheme.onTertiaryContainer

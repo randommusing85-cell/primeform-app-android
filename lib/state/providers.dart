@@ -6,6 +6,7 @@ import 'package:primeform_app/models/checkin.dart';
 import 'package:primeform_app/models/prime_plan.dart';
 import 'package:primeform_app/models/workout_template_doc.dart';
 import 'package:primeform_app/models/user_profile.dart';
+import 'package:primeform_app/models/meal_log.dart';
 
 final primeRepoProvider = Provider<PrimeRepo>((ref) => PrimeRepo());
 
@@ -23,6 +24,22 @@ final latestCheckInsStreamProvider = StreamProvider.autoDispose<List<CheckIn>>((
 ) {
   final repo = ref.watch(primeRepoProvider);
   return repo.watchLatestCheckIns(limit: 30);
+});
+
+// Today's meals stream provider
+final todayMealsStreamProvider = StreamProvider.autoDispose<List<MealLog>>((
+  ref,
+) {
+  final repo = ref.watch(primeRepoProvider);
+  return repo.watchTodayMeals();
+});
+
+// Weekly macro totals provider (for adherence card)
+final weeklyMacroTotalsProvider = FutureProvider.autoDispose<List<DailyMacroTotal>>((
+  ref,
+) async {
+  final repo = ref.watch(primeRepoProvider);
+  return repo.getDailyMacroTotals(7);
 });
 
 final activePlanProvider = FutureProvider.autoDispose<PrimePlan?>((ref) async {
@@ -65,4 +82,10 @@ final todayWorkoutDayProvider = FutureProvider<int?>((ref) async {
 
   // If last session isn't completed and it's from a previous day, keep it (carry forward).
   return last.dayIndex;
+});
+
+// This week's completed sessions provider
+final thisWeekSessionsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
+  final repo = ref.watch(primeRepoProvider);
+  return repo.getThisWeekSessions();
 });

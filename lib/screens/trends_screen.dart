@@ -141,30 +141,6 @@ class TrendsScreen extends ConsumerWidget {
         '${d.year}';
   }
 
-  Map<String, dynamic> buildTrendPayload(List<CheckIn> items) {
-    final last14 = items.take(14).toList();
-    final last7 = last14.take(7).toList();
-    final prev7 = last14.skip(7).take(7).toList();
-
-    double avg(Iterable<double> xs) =>
-        xs.isEmpty ? 0 : xs.reduce((a, b) => a + b) / xs.length;
-
-    return {
-      "weight": {
-        "last7": avg(last7.map((c) => c.weightKg)),
-        "prev7": avg(prev7.map((c) => c.weightKg)),
-      },
-      "waist": {
-        "last7": avg(last7.map((c) => c.waistCm)),
-        "prev7": avg(prev7.map((c) => c.waistCm)),
-      },
-      "steps": {
-        "last7": avg(last7.map((c) => c.stepsToday.toDouble())),
-        "prev7": avg(prev7.map((c) => c.stepsToday.toDouble())),
-      },
-    };
-  }
-
   static Trend _trend({
     required double now,
     required double prev,

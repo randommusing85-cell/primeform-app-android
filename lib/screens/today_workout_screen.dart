@@ -1,10 +1,11 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import 'workout_completion_screen.dart';
 
 class TodayWorkoutScreen extends ConsumerStatefulWidget {
   const TodayWorkoutScreen({super.key});
@@ -206,13 +207,21 @@ class _TodayWorkoutScreenState extends ConsumerState<TodayWorkoutScreen> {
                     ref.invalidate(todayWorkoutDayProvider);
 
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Workout completed ✅ ($checkedCount/${exercises.length})',
+                      // Navigate to completion screen
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => WorkoutCompletionScreen(
+                            dayIndex: dayIndex,
+                            totalDays: doc.daysPerWeek,
+                            completedExercises: checkedCount,
+                            totalExercises: exercises.length,
+                            workoutTitle: title,
                           ),
                         ),
                       );
+                      
+                      // Refresh when coming back
+                      ref.invalidate(todayWorkoutDayProvider);
                     }
                   }
 

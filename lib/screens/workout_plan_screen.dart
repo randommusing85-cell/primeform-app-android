@@ -1,9 +1,10 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import 'workout_lock_explanation_screen.dart';
 
 class WorkoutPlanScreen extends ConsumerStatefulWidget {
   const WorkoutPlanScreen({super.key});
@@ -35,6 +36,40 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
         daysPerWeek = profile.trainingDaysPerWeek;
         _initialized = true;
       });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if there's an existing workout template with lock
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final existing = await ref.read(primeRepoProvider).getLatestWorkoutTemplate();
+      if (mounted && existing != null) {
+        _checkWorkoutLock(existing.createdAt);
+      }
+    });
+  }
+
+  Future<void> _checkWorkoutLock(DateTime createdAt) async {
+    const lockDays = 14;
+    final daysSince = DateTime.now().difference(createdAt).inDays;
+    
+    if (daysSince < lockDays) {
+      // Show lock screen
+      final shouldProceed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => WorkoutLockExplanationScreen(
+            createdAt: createdAt,
+            lockDays: lockDays,
+          ),
+        ),
+      );
+      
+      if (shouldProceed != true && mounted) {
+        // User didn't confirm or lock is still active, go back
+        Navigator.of(context).pop();
+      }
     }
   }
 

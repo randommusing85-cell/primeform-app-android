@@ -136,6 +136,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                   return null;
                 },
               ),
+
               const SizedBox(height: 12),
 
               TextFormField(

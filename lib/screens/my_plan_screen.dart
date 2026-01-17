@@ -6,6 +6,7 @@ import '../models/checkin.dart';
 import '../models/prime_plan.dart';
 import '../state/providers.dart';
 import '../widgets/ai_coach_card.dart';
+import 'nutrition_lock_explanation_screen.dart';
 
 class MyPlanScreen extends ConsumerStatefulWidget {
   const MyPlanScreen({super.key});
@@ -22,6 +23,7 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
   num _n(dynamic v, num fallback) =>
       v is num ? v : num.tryParse(v?.toString() ?? '') ?? fallback;
 
+  // ===== AI COACH LOCK METHODS =====
   bool _canAskCoach(PrimePlan plan) {
     final now = DateTime.now();
     final daysSince = now.difference(plan.createdAt).inDays;
@@ -33,6 +35,45 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
     final daysSince = now.difference(plan.createdAt).inDays;
     final remaining = 7 - daysSince;
     return remaining < 0 ? 0 : remaining;
+  }
+
+  // ===== NUTRITION PLAN LOCK METHODS (NEW) =====
+  bool _canRegeneratePlan(PrimePlan plan) {
+    final now = DateTime.now();
+    final daysSince = now.difference(plan.createdAt).inDays;
+    return daysSince >= 14;
+  }
+
+  int _daysUntilRegenerate(PrimePlan plan) {
+    final now = DateTime.now();
+    final daysSince = now.difference(plan.createdAt).inDays;
+    final remaining = 14 - daysSince;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  Future<void> _navigateToRegenerate(PrimePlan plan) async {
+    // Check if plan can be regenerated
+    if (!_canRegeneratePlan(plan)) {
+      // Show lock explanation screen
+      final shouldProceed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => NutritionLockExplanationScreen(
+            createdAt: plan.createdAt,
+            lockDays: 14,
+          ),
+        ),
+      );
+
+      // If user didn't confirm or lock is still active, don't proceed
+      if (shouldProceed != true) {
+        return;
+      }
+    }
+
+    // Lock is not active or user confirmed, proceed to regenerate
+    if (mounted) {
+      Navigator.pushNamed(context, '/plan');
+    }
   }
 
   Future<void> _askCoach({
@@ -117,10 +158,10 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
         title: const Text('Apply adjustment?'),
         content: Text(
           'This will save a NEW plan version.\n\n'
-          'Calories: ${current.calories} → $newCalories '
+          'Calories: ${current.calories} -> $newCalories '
           '(${calorieDelta >= 0 ? "+" : ""}$calorieDelta)\n'
-          'Carbs: ${current.carbsG} g → $newCarbs g\n'
-          'Step target: ${current.stepTarget} → $newStepTarget '
+          'Carbs: ${current.carbsG} g -> $newCarbs g\n'
+          'Step target: ${current.stepTarget} -> $newStepTarget '
           '(${stepDelta >= 0 ? "+" : ""}$stepDelta)\n',
         ),
         actions: [
@@ -155,7 +196,7 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Plan updated ✅')));
+    ).showSnackBar(const SnackBar(content: Text('Plan updated!')));
 
     setState(() {
       adjustment = null;
@@ -266,9 +307,23 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
 
                 const Spacer(),
 
+                // ===== UPDATED BUTTON WITH LOCK =====
                 FilledButton.tonal(
-                  onPressed: () => Navigator.pushNamed(context, '/plan'),
-                  child: const Text('Regenerate / Update Plan'),
+                  onPressed: () => _navigateToRegenerate(plan),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!_canRegeneratePlan(plan))
+                        const Icon(Icons.lock_outline, size: 18),
+                      if (!_canRegeneratePlan(plan))
+                        const SizedBox(width: 8),
+                      Text(
+                        _canRegeneratePlan(plan)
+                            ? 'Regenerate / Update Plan'
+                            : 'Update Plan (${_daysUntilRegenerate(plan)}d lock)',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );
@@ -279,7 +334,7 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
   }
 }
 
-/// Compact payload: last 14 check-ins → last7 vs prev7 averages.
+/// Compact payload: last 14 check-ins -> last7 vs prev7 averages.
 /// Keeps AI stable + cheap, avoids sending raw logs.
 Map<String, dynamic> buildTrendPayload(List<CheckIn> items) {
   final last14 = items.take(14).toList();

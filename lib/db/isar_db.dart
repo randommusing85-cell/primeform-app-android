@@ -5,6 +5,7 @@ import 'package:primeform_app/models/prime_plan.dart';
 import 'package:primeform_app/models/workout_template_doc.dart';
 import 'package:primeform_app/models/workout_session_doc.dart';
 import 'package:primeform_app/models/user_profile.dart';
+import 'package:primeform_app/models/meal_log.dart';
 
 class IsarDb {
   static Isar? _isar;
@@ -19,6 +20,7 @@ class IsarDb {
       WorkoutTemplateDocSchema,
       WorkoutSessionDocSchema,
       UserProfileSchema,
+      MealLogSchema, // NEW
     ], directory: dir.path);
 
     return _isar!;
