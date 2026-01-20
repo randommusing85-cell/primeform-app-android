@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:primeform_app/repos/prime_repo.dart';
-import 'package:primeform_app/repos/user_profile_repo.dart';
-import 'package:primeform_app/models/checkin.dart';
-import 'package:primeform_app/models/prime_plan.dart';
-import 'package:primeform_app/models/workout_template_doc.dart';
-import 'package:primeform_app/models/user_profile.dart';
-import 'package:primeform_app/models/meal_log.dart';
+import '../repos/prime_repo.dart';
+import '../repos/user_profile_repo.dart';
+import '../models/checkin.dart';
+import '../models/prime_plan.dart';
+import '../models/workout_template_doc.dart';
+import '../models/user_profile.dart';
+import '../models/meal_log.dart';
+import '../services/analytics_service.dart';
 
 final primeRepoProvider = Provider<PrimeRepo>((ref) => PrimeRepo());
 
@@ -34,12 +35,10 @@ final todayMealsStreamProvider = StreamProvider.autoDispose<List<MealLog>>((
   return repo.watchTodayMeals();
 });
 
-// Weekly macro totals provider (for adherence card)
-final weeklyMacroTotalsProvider = FutureProvider.autoDispose<List<DailyMacroTotal>>((
-  ref,
-) async {
+// Weekly macro totals provider (for MacroAdherenceCard)
+final weeklyMacroTotalsProvider = FutureProvider.autoDispose<List<DailyMacroTotal>>((ref) async {
   final repo = ref.watch(primeRepoProvider);
-  return repo.getDailyMacroTotals(7);
+  return repo.getDailyMacroTotals(7); // Last 7 days
 });
 
 final activePlanProvider = FutureProvider.autoDispose<PrimePlan?>((ref) async {
@@ -89,3 +88,5 @@ final thisWeekSessionsProvider = FutureProvider.autoDispose<List<dynamic>>((ref)
   final repo = ref.watch(primeRepoProvider);
   return repo.getThisWeekSessions();
 });
+
+final analyticsProvider = Provider<AnalyticsService>((ref) => AnalyticsService());

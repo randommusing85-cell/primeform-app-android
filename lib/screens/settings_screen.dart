@@ -1,14 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
+import '../widgets/workout_day_scheduler.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _showScheduleDialog(
+    BuildContext context,
+    WidgetRef ref,
+    profile,
+  ) async {
+    List<int> selectedDays = List<int>.from(profile.scheduledDaysList);
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Training Schedule'),
+            content: SingleChildScrollView(
+              child: WorkoutDayScheduler(
+                selectedDays: selectedDays,
+                maxDays: profile.trainingDaysPerWeek,
+                onChanged: (days) {
+                  setState(() {
+                    selectedDays = days;
+                  });
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: selectedDays.length == profile.trainingDaysPerWeek
+                    ? () async {
+                        // Save the schedule
+                        final repo = ref.read(userProfileRepoProvider);
+                        profile.scheduledDaysList = selectedDays;
+                        profile.updatedAt = DateTime.now();
+                        await repo.saveProfile(profile);
+                        ref.invalidate(userProfileProvider);
+
+                        if (context.mounted) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Workout schedule updated! ✅'),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final profileAsync = ref.watch(userProfileProvider);
+
+    // Track analytics
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = ref.read(analyticsProvider);
+      analytics.logSettingsViewed();
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -51,6 +117,24 @@ class SettingsScreen extends ConsumerWidget {
                 title: const Text('Weight'),
                 trailing: Text('${profile.weightKg.toStringAsFixed(1)} kg'),
               ),
+
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FilledButton.icon(
+                  onPressed: () {
+                    final analytics = ref.read(analyticsProvider);
+                    analytics.logProfileEditStarted();
+                    Navigator.pushNamed(context, '/edit-profile');
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Profile'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
 
               const Divider(),
 
@@ -125,6 +209,13 @@ class SettingsScreen extends ConsumerWidget {
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Training Days'),
                 trailing: Text('${profile.trainingDaysPerWeek} days/week'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Workout Schedule'),
+                subtitle: Text(profile.scheduleDisplayText),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => _showScheduleDialog(context, ref, profile),
               ),
 
               const Divider(),
@@ -290,7 +381,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => _showFullDisclaimerDialog(context),
+            onPressed: () {
+              final analytics = AnalyticsService();
+              analytics.logMedicalDisclaimerViewed();
+              _showFullDisclaimerDialog(context);
+            },
             icon: const Icon(Icons.open_in_new, size: 16),
             label: const Text('Read Full Disclaimer'),
             style: OutlinedButton.styleFrom(

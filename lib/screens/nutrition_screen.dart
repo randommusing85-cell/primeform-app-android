@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/meal_log.dart';
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
@@ -366,6 +367,10 @@ class _MealCard extends ConsumerWidget {
             );
 
             if (confirm == true) {
+              // Track analytics
+              final analytics = ref.read(analyticsProvider);
+              await analytics.logMealDeleted(mealType: meal.mealType);
+  
               final repo = ref.read(primeRepoProvider);
               await repo.deleteMealLog(meal.id);
               ref.invalidate(todayMealsStreamProvider);
@@ -420,6 +425,15 @@ class _AddMealDialogState extends ConsumerState<_AddMealDialog> {
 
     final repo = ref.read(primeRepoProvider);
     await repo.addMealLog(meal);
+    // Track analytics
+    final analytics = ref.read(analyticsProvider);
+    await analytics.logMealLogged(
+      mealType: meal.mealType,
+      proteinG: meal.proteinG,
+      carbsG: meal.carbsG,
+      fatG: meal.fatG,
+      hasDescription: meal.description != null,
+    );
     ref.invalidate(todayMealsStreamProvider);
 
     if (mounted) {

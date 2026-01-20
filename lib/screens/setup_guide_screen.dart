@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/analytics_service.dart';
 
 /// Shows after onboarding to guide users through creating their first plans
 class SetupGuideScreen extends ConsumerWidget {
@@ -8,6 +9,12 @@ class SetupGuideScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+
+    // Track analytics
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = AnalyticsService();
+      analytics.logSetupGuideViewed();
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -125,6 +132,9 @@ class SetupGuideScreen extends ConsumerWidget {
 
               TextButton(
                 onPressed: () {
+                  final analytics = AnalyticsService();
+                  analytics.logSetupGuideSkipped();
+    
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/',
                     (route) => false,

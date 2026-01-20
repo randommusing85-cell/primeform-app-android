@@ -5,7 +5,7 @@
 
 ## Overview
 
-PrimeForm (working name: PhysIQ) is a fitness and nutrition app designed to reduce confusion, overwhelm, and decision fatigue—especially for beginners, restarters, and busy adults.
+PrimeForm (working name: PhysIQ) is a fitness and nutrition app designed to reduce confusion, overwhelm, and decision fatigueâ€”especially for beginners, restarters, and busy adults.
 
 Rather than chasing perfect accuracy or extreme optimisation, PrimeForm prioritises:
 - consistency
@@ -24,12 +24,12 @@ The app combines structured fitness principles with AI-assisted coaching, while 
 - Habits come before optimisation
 - Calm guidance beats aggressive motivation
 - Trends matter more than day-to-day noise
-- AI should interpret and guide—not judge or shame
+- AI should interpret and guideâ€”not judge or shame
 
 **What PrimeForm is not**
 - Not a calorie database race
 - Not a social fitness platform
-- Not a “30-day shredded” app
+- Not a "30-day shredded" app
 - Not an analytics overload tool
 
 ---
@@ -37,9 +37,9 @@ The app combines structured fitness principles with AI-assisted coaching, while 
 ## Target Users
 
 - Beginners who feel lost
-- People restarting fitness in their 30s–40s
+- People restarting fitness in their 30sâ€“40s
 - Users overwhelmed by conflicting advice
-- Users who “know what to do” but struggle with consistency
+- Users who "know what to do" but struggle with consistency
 - Working adults who want guidance without obsession
 
 ---
@@ -48,9 +48,9 @@ The app combines structured fitness principles with AI-assisted coaching, while 
 
 - RevenueCat is used for subscriptions and entitlements
 - Paywall modes are remotely configurable:
-  - **OFF** – full access (beta/testing)
-  - **SOFT** – limited premium usage
-  - **HARD** – premium locked behind subscription
+  - **OFF** â€“ full access (beta/testing)
+  - **SOFT** â€“ limited premium usage
+  - **HARD** â€“ premium locked behind subscription
 - Entitlements are checked:
   - client-side (UI/UX gating)
   - server-side (AI cost protection)
@@ -62,7 +62,7 @@ The app combines structured fitness principles with AI-assisted coaching, while 
 
 ---
 
-## v0.1 — Foundation Build (Internal / Beta)
+## v0.1 â€” Foundation Build (Internal / Beta)
 
 **Purpose:**  
 Validate the core loop and architecture. No monetisation pressure.
@@ -71,6 +71,7 @@ Validate the core loop and architecture. No monetisation pressure.
 - User profile:
   - age, sex, height, weight
   - training level
+  - **scheduled workout days (specific days: Mon-Sun)**
 - Goal selection:
   - fat loss
   - recomposition
@@ -101,9 +102,25 @@ Validate the core loop and architecture. No monetisation pressure.
   - exercises
   - sets
   - reps
+- **Workout day scheduler:**
+  - Visual day picker (Mon-Sun chips)
+  - Enforces training days/week limit
+  - Validates selection before plan generation
+- **Smart workout calendar:**
+  - Visual progress tracking
+  - Green circles = completed workouts
+  - Red circles = missed scheduled workouts (NOT rest days)
+  - Blue border = today
+  - Stats badges showing completed/missed counts
 - Workout session logging
 - Session completion tracking
 - Fixed, curated exercise list
+
+**Key UX Philosophy:**
+- Calendar only marks SCHEDULED days as potential misses
+- Rest days never show as "missed" (no false negatives)
+- Promotes accurate adherence tracking
+- Reduces guilt from unscheduled rest days
 
 ---
 
@@ -113,8 +130,8 @@ Validate the core loop and architecture. No monetisation pressure.
   - waist measurement
   - adherence %
 - Simple AI trend interpretation:
-  - “stay the course”
-  - “don’t adjust yet”
+  - "stay the course"
+  - "don't adjust yet"
 - No aggressive auto-adjustments
 
 ---
@@ -124,10 +141,12 @@ Validate the core loop and architecture. No monetisation pressure.
 - No cluttered dashboards
 - Clear primary actions
 - Calm, neutral tone
+- **Visual workout progress indicators**
+- **Color-coded adherence feedback**
 
 ---
 
-## v1.0 — Public Free Tier (Habit Builder)
+## v1.0 â€” Public Free Tier (Habit Builder)
 
 **Purpose:**  
 Help users stay consistent without overwhelm.
@@ -149,6 +168,11 @@ Exactly **three core elements**:
 2. Calories/macros remaining  
 3. Log food  
 
+**Plus:**
+- Weekly workout progress indicator
+- Current training schedule display
+- Today's workout quick access
+
 All analytics, trends, and insights:
 - live in secondary tabs
 - optional to view
@@ -157,6 +181,8 @@ All analytics, trends, and insights:
 
 ### Workouts (Free Tier)
 - Structured workout plans
+- **Flexible workout scheduling (any days of week)**
+- **Visual calendar with progress tracking**
 - Workout logging
 - Limited custom exercises
 - Standard tracking mode:
@@ -171,13 +197,32 @@ All analytics, trends, and insights:
 - Conservative guardrails
 - No body critique
 - No extreme recommendations
+- **Schedule-aware feedback** (recognizes planned rest days vs. missed workouts)
 
 ---
 
-## Phase 2 — Paid Tier (Power & Precision)
+## Phase 2 â€” Paid Tier (Power & Precision)
 
 **Purpose:**  
 Unlock depth *after* habits are established.
+
+---
+
+### Advanced Scheduling (Paid)
+- **Multi-week workout schedules:**
+  - Deload weeks
+  - Periodization patterns
+  - Different schedules per training phase
+- **Schedule templates:**
+  - Save/load common patterns
+  - Share schedules (community feature)
+- **Smart rescheduling:**
+  - AI suggests makeup days for missed workouts
+  - Flexible week rollover
+- **Calendar integrations:**
+  - Sync to device calendar
+  - Google Calendar export
+  - Outlook integration
 
 ---
 
@@ -205,6 +250,10 @@ Unlock depth *after* habits are established.
 - Progressive overload tracking
 - Historical bests
 - Optional plateau detection
+- **Advanced calendar analytics:**
+  - Adherence trends over time
+  - Weekly/monthly/yearly views
+  - Pattern recognition (e.g., "you often miss Mondays")
 
 ---
 
@@ -215,6 +264,8 @@ Unlock depth *after* habits are established.
   - circuits
   - supersets
 - Reduced manual interaction during workouts
+- **Push notifications for scheduled workout days**
+- **Adaptive rest day suggestions based on recovery**
 
 ---
 
@@ -232,10 +283,14 @@ Unlock depth *after* habits are established.
 - Subtle, pleasant animations
 - Optional dashboard customisation
 - Minimal by default
+- **Advanced calendar visualizations:**
+  - Heatmaps
+  - Streak tracking
+  - Year-in-review summaries
 
 ---
 
-## Phase 3 — Identity & Motivation Layer (Premium Differentiator)
+## Phase 3 â€” Identity & Motivation Layer (Premium Differentiator)
 
 ---
 
@@ -246,7 +301,7 @@ Unlock depth *after* habits are established.
   - habits
   - timeline
 - Framed as trajectory, not comparison
-- “Closest path to X-style physique”
+- "Closest path to X-style physique"
 
 ---
 
@@ -273,16 +328,41 @@ Unlock depth *after* habits are established.
 - Cycle-based trend interpretation
 - Training intensity suggestions
 - Nutrition guidance by cycle phase
+- **Smart scheduling recommendations:**
+  - Suggests scheduling heavy training during follicular phase
+  - Recommends lighter training during luteal/menstrual phases
+  - Adjusts "missed workout" tolerance during period week
 - Insight-only (no medical claims)
+
+---
+
+## Design Principles for Workout Scheduling
+
+### Free Tier Philosophy
+- **Simple, clear day selection** (Mon-Sun chips)
+- **Visual progress feedback** (calendar with colors)
+- **Honest adherence tracking** (only scheduled days count as misses)
+- **No guilt trips** (rest days are never marked as "missed")
+- **Encouragement focus** ("You hit 3/4 workouts this week!")
+
+### Paid Tier Enhancement Philosophy
+- **Advanced patterns** (periodization, deloads)
+- **Predictive insights** ("You typically struggle on Mondays")
+- **Flexible adjustments** (easy rescheduling, AI suggestions)
+- **Long-term visualization** (trends, streaks, annual summaries)
+- **Never overwhelming** (still calm, still encouraging)
 
 ---
 
 ## Long-Term Vision
 
 PrimeForm / PhysIQ aims to become:
-> A trusted, calm fitness companion people rely on—like MyFitnessPal for logging, but personalised, humane, and intelligent.
+> A trusted, calm fitness companion people rely onâ€”like MyFitnessPal for logging, but personalised, humane, and intelligent.
 
 The app is designed to grow with the user:
 - simple when they need structure
-- powerful when they’re ready for control
+- powerful when they're ready for control
 - always grounded in safety and realism
+
+**Core Differentiator:**  
+Unlike apps that guess your schedule or create false guilt, PrimeForm knows *exactly* when you planned to train and measures consistency against *your* planâ€”not an arbitrary standard.

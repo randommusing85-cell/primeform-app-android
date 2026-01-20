@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/prime_plan.dart';
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
 
 class PlanScreen extends ConsumerStatefulWidget {
   const PlanScreen({super.key});
@@ -88,7 +89,15 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 
       if (data["ok"] == true) {
         final planJson = Map<String, dynamic>.from(data["plan"] as Map);
-        
+
+        // Track analytics
+        final analytics = AnalyticsService();
+        await analytics.logNutritionPlanGenerated(
+          goal: _goal,
+          calories: planJson['calories'] ?? 0,
+          trainingDays: _daysPerWeek,
+        );
+  
         // Show plan in popup dialog
         if (mounted) {
           final shouldSave = await showDialog<bool>(
@@ -138,6 +147,14 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 
     final repo = ref.read(primeRepoProvider);
     await repo.upsertPlan(plan);
+
+    // Track analytics
+    final analytics = AnalyticsService();
+    await analytics.logNutritionPlanSaved(
+      planName: plan.planName,
+      calories: plan.calories,
+    );
+
     ref.invalidate(activePlanProvider);
 
     if (!mounted) return;

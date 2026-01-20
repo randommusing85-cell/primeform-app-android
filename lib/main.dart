@@ -19,6 +19,8 @@ import 'screens/injury_settings_screen.dart';
 import 'screens/notification_settings_screen.dart';
 import 'services/notification_service.dart';
 import 'state/providers.dart';
+import 'screens/edit_profile_screen.dart';
+import 'services/analytics_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +61,7 @@ class PrimeFormApp extends ConsumerWidget {
         '/settings': (context) => const SettingsScreen(),
         '/settings/injuries': (context) => const InjurySettingsScreen(),
         '/settings/notifications': (context) => const NotificationSettingsScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
       },
     );
   }
@@ -70,6 +73,12 @@ class AppInitializer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Track app opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = AnalyticsService();
+      analytics.logAppOpened();
+    });
+    
     final profileAsync = ref.watch(userProfileProvider);
 
     return profileAsync.when(

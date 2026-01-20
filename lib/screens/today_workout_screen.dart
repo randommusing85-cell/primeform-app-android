@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
+import '../widgets/workout_calendar.dart';
 import 'workout_completion_screen.dart';
 
 class TodayWorkoutScreen extends ConsumerStatefulWidget {
@@ -204,6 +206,15 @@ class _TodayWorkoutScreenState extends ConsumerState<TodayWorkoutScreen> {
                       await repo.completeSession(session.id);
                     }
 
+                    // Track analytics
+                    final analytics = AnalyticsService();
+                    await analytics.logWorkoutCompleted(
+                      dayIndex: dayIndex,
+                      totalDays: doc.daysPerWeek,
+                      exercisesCompleted: checkedCount,
+                      totalExercises: exercises.length,
+                    );
+
                     ref.invalidate(todayWorkoutDayProvider);
 
                     if (mounted) {
@@ -225,10 +236,17 @@ class _TodayWorkoutScreenState extends ConsumerState<TodayWorkoutScreen> {
                     }
                   }
 
-                  return Padding(
+                  return SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Workout Calendar
+                        WorkoutCalendar(
+                          trainingDaysPerWeek: doc.daysPerWeek,
+                        ),
+                        const SizedBox(height: 16),
+                        
                         // Header
                         Card(
                           child: Padding(
@@ -238,22 +256,18 @@ class _TodayWorkoutScreenState extends ConsumerState<TodayWorkoutScreen> {
                               children: [
                                 Text(
                                   title,
-                                  style:
-                                      Theme.of(context).textTheme.titleLarge,
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   '${doc.planName} • Day $dayIndex of ${doc.daysPerWeek}',
-                                  style:
-                                      Theme.of(context).textTheme.bodyMedium,
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 if (warmupEnabled) ...[
                                   const SizedBox(height: 10),
                                   Text(
                                     'Warm-up sets (main/secondary lifts):',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall,
+                                    style: Theme.of(context).textTheme.titleSmall,
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
@@ -267,123 +281,113 @@ class _TodayWorkoutScreenState extends ConsumerState<TodayWorkoutScreen> {
 
                         const SizedBox(height: 12),
 
-                        // Exercises list (with warm-up line + rest)
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: exercises.length,
-                            itemBuilder: (context, i) {
-                              final ex = exercises[i];
+                        // Exercises list (now using List.generate instead of ListView.builder)
+                        ...List.generate(exercises.length, (i) {
+                          final ex = exercises[i];
 
-                              final id = (ex['exerciseId'] ?? 'ex_$i')
-                                  .toString();
-                              final key = 'd$dayIndex:$id';
+                          final id = (ex['exerciseId'] ?? 'ex_$i').toString();
+                          final key = 'd$dayIndex:$id';
 
-                              final name =
-                                  ex['name']?.toString() ?? 'Exercise';
-                              final sets = ex['workingSets'] ?? '?';
+                          final name = ex['name']?.toString() ?? 'Exercise';
+                          final sets = ex['workingSets'] ?? '?';
 
-                              final repRaw = ex['repRange'];
-                              int? repMin;
-                              int? repMax;
-                              if (repRaw is Map) {
-                                final rep =
-                                    Map<String, dynamic>.from(repRaw);
-                                final minVal = rep['min'];
-                                final maxVal = rep['max'];
-                                if (minVal is num) repMin = minVal.toInt();
-                                if (maxVal is num) repMax = maxVal.toInt();
-                              }
-                              final repText = (repMin != null && repMax != null)
-                                  ? '$repMin–$repMax'
-                                  : '?';
+                          final repRaw = ex['repRange'];
+                          int? repMin;
+                          int? repMax;
+                          if (repRaw is Map) {
+                            final rep = Map<String, dynamic>.from(repRaw);
+                            final minVal = rep['min'];
+                            final maxVal = rep['max'];
+                            if (minVal is num) repMin = minVal.toInt();
+                            if (maxVal is num) repMax = maxVal.toInt();
+                          }
+                          final repText = (repMin != null && repMax != null)
+                              ? '$repMin–$repMax'
+                              : '?';
 
-                              final liftClass =
-                                  ex['liftClass']?.toString() ?? 'accessory';
-                              final showWarmup =
-                                  (liftClass == 'main' ||
-                                          liftClass == 'secondary') &&
-                                      warmupEnabled;
+                          final liftClass = ex['liftClass']?.toString() ?? 'accessory';
+                          final showWarmup =
+                              (liftClass == 'main' || liftClass == 'secondary') &&
+                                  warmupEnabled;
 
-                              // Rest seconds (prefer per-exercise, fallback by class)
-                              int restSec = (liftClass == 'main' ||
-                                      liftClass == 'secondary')
-                                  ? 150
-                                  : 90;
-                              final restRaw = ex['restSeconds'];
-                              if (restRaw is num) {
-                                restSec = restRaw.toInt();
-                              }
+                          // Rest seconds (prefer per-exercise, fallback by class)
+                          int restSec = (liftClass == 'main' || liftClass == 'secondary')
+                              ? 150
+                              : 90;
+                          final restRaw = ex['restSeconds'];
+                          if (restRaw is num) {
+                            restSec = restRaw.toInt();
+                          }
 
-                              final checked = _done[key] ?? false;
+                          final checked = _done[key] ?? false;
 
-                              return Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 6,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Checkbox(
-                                        value: checked,
-                                        onChanged: (v) => setState(
-                                          () => _done[key] = v ?? false,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 6),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Checkbox(
+                                      value: checked,
+                                      onChanged: (v) =>
+                                          setState(() => _done[key] = v ?? false),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              name,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text('$sets sets × $repText reps'),
+                                            if (showWarmup) ...[
+                                              const SizedBox(height: 4),
                                               Text(
-                                                name,
+                                                warmupText,
                                                 style: Theme.of(context)
                                                     .textTheme
-                                                    .titleMedium,
+                                                    .bodySmall,
                                               ),
-                                              const SizedBox(height: 2),
-                                              Text('$sets sets × $repText reps'),
-                                              if (showWarmup) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  warmupText,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall,
-                                                ),
-                                              ],
                                             ],
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      TextButton(
-                                        onPressed: () => _startRest(
-                                          seconds: restSec,
-                                          label: name,
-                                        ),
-                                        child: Text('Rest ${restSec}s'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: () => _startRest(
+                                        seconds: restSec,
+                                        label: name,
                                       ),
-                                    ],
-                                  ),
+                                      child: Text('Rest ${restSec}s'),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
-                        ),
+                              ),
+                            ),
+                          );
+                        }),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
 
                         FilledButton(
                           onPressed: completeWorkout,
                           child: const Text('Complete Workout'),
                         ),
+
+                        const SizedBox(height: 80), // Extra space for bottom navigation
                       ],
                     ),
                   );

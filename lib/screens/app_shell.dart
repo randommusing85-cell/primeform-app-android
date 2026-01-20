@@ -6,6 +6,7 @@ import 'plans_tab_screen.dart';
 import 'trends_screen.dart';
 import 'settings_screen.dart';
 import 'checkin_screen.dart';
+import '../services/analytics_service.dart';
 
 /// Main app shell with bottom navigation
 class AppShell extends ConsumerStatefulWidget {
@@ -29,6 +30,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     setState(() {
       _selectedIndex = index;
     });
+    
+    // Track screen views
+    final screens = ['home', 'nutrition', 'trends', 'settings'];
+    final analytics = AnalyticsService();
+    analytics.logScreenView(screens[index]);
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/checkin.dart';
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
 
 class CheckInScreen extends ConsumerStatefulWidget {
   const CheckInScreen({super.key});
@@ -47,6 +48,15 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
 
       final repo = ref.read(primeRepoProvider);
       await repo.addCheckIn(c);
+
+      // Track analytics
+      final analytics = ref.read(analyticsProvider);
+      await analytics.logCheckInCompleted(
+        weightKg: c.weightKg,
+        waistCm: c.waistCm,
+        stepsToday: c.stepsToday,
+        hasNote: c.note != null,
+      );
 
       // refresh stream consumers
       ref.invalidate(latestCheckInsStreamProvider);

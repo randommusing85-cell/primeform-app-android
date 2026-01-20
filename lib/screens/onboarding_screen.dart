@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/user_profile.dart';
 import '../state/providers.dart';
+import '../services/analytics_service.dart';
+import '../widgets/workout_day_scheduler.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,6 +25,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _level = 'beginner';
   String _equipment = 'gym';
   int _trainingDays = 4;
+  
+  // NEW: Scheduled workout days
+  List<int> _scheduledDays = [];
 
   // Cycle Tracking Variables
   bool _trackCycle = false;
@@ -39,6 +44,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Track onboarding started
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = ref.read(analyticsProvider);
+      analytics.logOnboardingStarted();
+    });
+  }
+
+  @override
   void dispose() {
     _ageCtrl.dispose();
     _heightCtrl.dispose();
@@ -48,6 +63,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // NEW: Validate scheduled workout days
+    if (_scheduledDays.length != _trainingDays) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select $_trainingDays training days'),
+        ),
+      );
+      return;
+    }
 
     // Validate cycle tracking data if enabled
     if (_trackCycle && _lastPeriodDate == null) {
@@ -92,6 +117,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ..level = _level
         ..equipment = _equipment
         ..trainingDaysPerWeek = _trainingDays
+        ..scheduledDaysList = _scheduledDays // NEW: Save scheduled days
         ..createdAt = DateTime.now()
         ..updatedAt = DateTime.now()
         // Cycle Tracking Fields
@@ -108,6 +134,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       final repo = ref.read(userProfileRepoProvider);
       await repo.saveProfile(profile);
+
+      // Track onboarding completion and demographics
+      final analytics = ref.read(analyticsProvider);
+      await analytics.logOnboardingCompleted(
+        age: profile.age,
+        sex: profile.sex,
+        goal: profile.goal,
+        tracksCycle: profile.trackCycle,
+        isPostPartum: profile.postPartumStatus != 'no',
+      );
+
+      await analytics.setUserDemographics(
+        age: profile.age,
+        sex: profile.sex,
+        goal: profile.goal,
+        level: profile.level,
+        equipment: profile.equipment,
+        trainingDaysPerWeek: profile.trainingDaysPerWeek,
+        tracksCycle: profile.trackCycle,
+        postPartumStatus: profile.postPartumStatus,
+      );
 
       // Refresh the profile provider
       ref.invalidate(userProfileProvider);
@@ -360,8 +407,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   DropdownMenuItem(value: 5, child: Text('5 days')),
                   DropdownMenuItem(value: 6, child: Text('6 days')),
                 ],
-                onChanged: (v) => setState(() => _trainingDays = v ?? 4),
+                onChanged: (v) => setState(() {
+                  _trainingDays = v ?? 4;
+                  _scheduledDays = []; // Reset scheduled days when count changes
+                }),
               ),
+
+              // NEW: Workout Day Scheduler
+              const SizedBox(height: 24),
+              
+              if (_trainingDays > 0) ...[
+                WorkoutDayScheduler(
+                  selectedDays: _scheduledDays,
+                  maxDays: _trainingDays,
+                  onChanged: (days) => setState(() => _scheduledDays = days),
+                ),
+              ],
 
               // ===== WOMEN'S HEALTH SECTION (Female Only) =====
               if (_sex == 'female') ...[

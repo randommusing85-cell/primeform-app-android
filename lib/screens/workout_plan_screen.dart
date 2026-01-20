@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
 import 'workout_lock_explanation_screen.dart';
+import '../services/analytics_service.dart';
 
 class WorkoutPlanScreen extends ConsumerStatefulWidget {
   const WorkoutPlanScreen({super.key});
@@ -204,6 +205,15 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                                 constraints: 'none',
                               );
                               setState(() => response = res);
+                              // Track analytics
+                              if (res['ok'] == true) {
+                                final analytics = AnalyticsService();
+                                await analytics.logWorkoutPlanGenerated(
+                                  level: level,
+                                  equipment: equipment,
+                                  daysPerWeek: daysPerWeek,
+                                );
+                              }
                             } finally {
                               setState(() => loading = false);
                             }
@@ -226,6 +236,13 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                             );
 
                             ref.invalidate(latestWorkoutTemplateProvider);
+
+                            // Track analytics
+                            final analytics = AnalyticsService();
+                            await analytics.logWorkoutPlanSaved(
+                              planName: 'Workout Plan',  // or extract from response if available
+                              daysPerWeek: daysPerWeek,
+                            );
 
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

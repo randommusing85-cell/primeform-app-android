@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
 import '../models/checkin.dart';
+import '../services/analytics_service.dart';
 
 class TrendsScreen extends ConsumerWidget {
   const TrendsScreen({super.key});
@@ -11,6 +12,12 @@ class TrendsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final checkInsAsync = ref.watch(latestCheckInsStreamProvider);
     final theme = Theme.of(context);
+    
+    // Track analytics
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = AnalyticsService();
+      analytics.logTrendsViewed();
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trends')),

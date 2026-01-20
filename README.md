@@ -18,12 +18,12 @@ PrimeForm is designed especially for:
 - Habits come before optimisation
 - Calm guidance beats aggressive motivation
 - Trends matter more than daily noise
-- AI should guide and encourage — not judge or shame
+- AI should guide and encourage â€” not judge or shame
 
 **What PrimeForm is not**
 - Not a calorie database race
 - Not a social fitness platform
-- Not a “30-day transformation” app
+- Not a "30-day transformation" app
 - Not an analytics overload tool
 
 ---
@@ -35,6 +35,12 @@ PrimeForm is designed especially for:
   - training level
   - equipment access (gym / home / dumbbells / bodyweight)
   - days per week
+  - **scheduled training days (Mon-Sun selection)**
+- **Smart workout calendar with visual progress tracking**
+  - Green circles for completed workouts
+  - Red circles for missed scheduled workouts (not rest days)
+  - Blue border for today
+  - Accurate adherence metrics
 - Workout session tracking
 - Progressive expansion toward:
   - custom exercises
@@ -61,7 +67,7 @@ PrimeForm is designed especially for:
 
 ### Identity & Motivation (Planned)
 - Aspiration archetypes:
-  - celebrity or fictional character “paths”
+  - celebrity or fictional character "paths"
   - framed as realistic trajectories, not comparisons
 - Optional progress photo check-ins with:
   - encouraging, coach-style feedback
@@ -84,9 +90,9 @@ PrimeForm uses a **free + premium** model.
 ## Long-Term Vision
 
 PrimeForm aims to become:
-> A trusted, calm fitness companion people rely on — like MyFitnessPal for logging, but more humane, personalised, and intelligent.
+> A trusted, calm fitness companion people rely on â€” like MyFitnessPal for logging, but more humane, personalised, and intelligent.
 
 The app grows with the user:
 - simple when they need structure
-- powerful when they’re ready for control
+- powerful when they're ready for control
 - always grounded in realism and safety

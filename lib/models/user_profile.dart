@@ -19,6 +19,65 @@ class UserProfile {
   late DateTime createdAt;
   late DateTime updatedAt;
 
+  // ===== WORKOUT SCHEDULE =====
+  
+  /// Scheduled workout days (1=Monday, 7=Sunday)
+  /// Stored as comma-separated string: "1,3,5" = Mon, Wed, Fri
+  String scheduledDays = '';
+  
+  /// Get scheduled days as list of integers
+  List<int> get scheduledDaysList {
+    if (scheduledDays.isEmpty) return [];
+    return scheduledDays
+        .split(',')
+        .where((s) => s.isNotEmpty)
+        .map((s) => int.tryParse(s))
+        .whereType<int>()
+        .toList();
+  }
+  
+  /// Set scheduled days from list
+  set scheduledDaysList(List<int> days) {
+    scheduledDays = days.join(',');
+  }
+  
+  /// Check if a specific day is a scheduled workout day
+  bool isScheduledWorkoutDay(DateTime date) {
+    if (scheduledDays.isEmpty) return false;
+    final dayOfWeek = date.weekday; // 1 = Monday, 7 = Sunday
+    return scheduledDaysList.contains(dayOfWeek);
+  }
+  
+  /// Get formatted schedule text for display
+  String get scheduleDisplayText {
+    final days = scheduledDaysList;
+    if (days.isEmpty) return 'Not scheduled';
+    
+    final dayNames = days.map((d) => _getDayName(d, short: true)).toList();
+    if (dayNames.length <= 2) {
+      return dayNames.join(' & ');
+    } else if (dayNames.length == 3) {
+      return '${dayNames[0]}, ${dayNames[1]} & ${dayNames[2]}';
+    } else {
+      return '${dayNames.sublist(0, 3).join(', ')}+';
+    }
+  }
+  
+  static String _getDayName(int day, {bool short = false}) {
+    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const fullNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    if (day < 1 || day > 7) return '';
+    return short ? names[day - 1] : fullNames[day - 1];
+  }
+
   // ===== CYCLE TRACKING FIELDS =====
   
   /// Whether user wants cycle-aware training

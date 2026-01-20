@@ -262,6 +262,20 @@ class PrimeRepo {
     return isar.workoutSessionDocs.where().sortByDateDesc().findFirst();
   }
 
+  /// NEW: Get all sessions (completed or not) in a date range
+  Future<List<WorkoutSessionDoc>> getSessionsInDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final isar = await IsarDb.instance();
+  
+    return isar.workoutSessionDocs
+        .filter()
+        .dateBetween(startDate, endDate)
+        .sortByDate()
+        .findAll();
+  }
+
   Future<WorkoutSessionDoc> startTodaySession({required int dayIndex}) async {
     final isar = await IsarDb.instance();
 

@@ -7,6 +7,7 @@ import '../models/prime_plan.dart';
 import '../state/providers.dart';
 import '../widgets/ai_coach_card.dart';
 import 'nutrition_lock_explanation_screen.dart';
+import '../services/analytics_service.dart';
 
 class MyPlanScreen extends ConsumerStatefulWidget {
   const MyPlanScreen({super.key});
@@ -80,6 +81,13 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
     required PrimePlan plan,
     required List<CheckIn> checkIns,
   }) async {
+    // Track analytics
+    final analytics = ref.read(analyticsProvider);
+    await analytics.logAiCoachQueried(
+      type: 'nutrition',
+      daysSincePlanCreated: DateTime.now().difference(plan.createdAt).inDays,
+    );
+
     setState(() {
       coachLoading = true;
       adjustment = null;
@@ -191,6 +199,15 @@ class _MyPlanScreenState extends ConsumerState<MyPlanScreen> {
 
     final repo = ref.read(primeRepoProvider);
     await repo.upsertPlan(updated);
+
+    // Track analytics
+    final analytics = ref.read(analyticsProvider);
+    await analytics.logAiCoachAdjustmentApplied(
+      type: 'nutrition',
+      action: action,
+      calorieDelta: calorieDelta,
+    );
+
     ref.invalidate(activePlanProvider);
 
     if (!mounted) return;
