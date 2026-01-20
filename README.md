@@ -14,14 +14,14 @@ PrimeForm combines structured fitness principles with AI-assisted coaching to he
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/home.jpg" width="200"/><br/><em>Home Dashboard</em></td>
-    <td><img src="docs/screenshots/workout.jpg" width="200"/><br/><em>Today's Workout</em></td>
-    <td><img src="docs/screenshots/nutrition.jpg" width="200"/><br/><em>Meal Tracking</em></td>
+    <td><img src="docs/screenshots/home.jpeg" width="200"/><br/><em>Home Dashboard</em></td>
+    <td><img src="docs/screenshots/workout.jpeg" width="200"/><br/><em>Today's Workout</em></td>
+    <td><img src="docs/screenshots/nutrition.jpeg" width="200"/><br/><em>Meal Tracking</em></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/plans.jpg" width="200"/><br/><em>AI-Generated Plans</em></td>
-    <td><img src="docs/screenshots/trends.jpg" width="200"/><br/><em>Progress Trends</em></td>
-    <td><img src="docs/screenshots/settings.jpg" width="200"/><br/><em>Profile Settings</em></td>
+    <td><img src="docs/screenshots/plans.jpeg" width="200"/><br/><em>AI-Generated Plans</em></td>
+    <td><img src="docs/screenshots/trends.jpeg" width="200"/><br/><em>Progress Trends</em></td>
+    <td><img src="docs/screenshots/settings.jpeg" width="200"/><br/><em>Profile Settings</em></td>
   </tr>
 </table>
 
