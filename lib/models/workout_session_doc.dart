@@ -8,9 +8,16 @@ class WorkoutSessionDoc {
 
   @Index()
   late DateTime date; // local date/time when started/completed
-  
+
   late int dayIndex; // 1..daysPerWeek
   late bool completed;
+
+  // Skip tracking
+  bool skipped = false;
+  String? skipReason;
+
+  // Notes/feedback from the workout
+  String? notes;
 
   // optional, but handy
   String? planId; // you can ignore for now

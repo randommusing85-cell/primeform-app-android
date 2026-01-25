@@ -1,13 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../repos/prime_repo.dart';
 import '../repos/user_profile_repo.dart';
 import '../models/checkin.dart';
 import '../models/prime_plan.dart';
 import '../models/workout_template_doc.dart';
+import '../models/workout_session_doc.dart';
 import '../models/user_profile.dart';
 import '../models/meal_log.dart';
 import '../services/analytics_service.dart';
+
+// ============================================================================
+// REPOSITORY PROVIDERS
+// ============================================================================
 
 final primeRepoProvider = Provider<PrimeRepo>((ref) => PrimeRepo());
 
@@ -15,22 +19,36 @@ final userProfileRepoProvider = Provider<UserProfileRepo>(
   (ref) => UserProfileRepo(),
 );
 
+// ============================================================================
+// USER PROFILE & SETTINGS
+// ============================================================================
+
 final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final repo = ref.watch(userProfileRepoProvider);
   return repo.getProfile();
 });
 
-final latestCheckInsStreamProvider = StreamProvider.autoDispose<List<CheckIn>>((
-  ref,
-) {
+// Active injuries stream (safety feature)
+final activeInjuriesProvider = StreamProvider.autoDispose<List<String>>((ref) {
+  final repo = ref.watch(userProfileRepoProvider);
+  return repo.watchActiveInjuries();
+});
+
+// ============================================================================
+// CHECK-INS & DAILY DATA
+// ============================================================================
+
+final latestCheckInsStreamProvider = StreamProvider.autoDispose<List<CheckIn>>((ref) {
   final repo = ref.watch(primeRepoProvider);
   return repo.watchLatestCheckIns(limit: 30);
 });
 
+// ============================================================================
+// NUTRITION & MEALS
+// ============================================================================
+
 // Today's meals stream provider
-final todayMealsStreamProvider = StreamProvider.autoDispose<List<MealLog>>((
-  ref,
-) {
+final todayMealsStreamProvider = StreamProvider.autoDispose<List<MealLog>>((ref) {
   final repo = ref.watch(primeRepoProvider);
   return repo.watchTodayMeals();
 });
@@ -41,44 +59,49 @@ final weeklyMacroTotalsProvider = FutureProvider.autoDispose<List<DailyMacroTota
   return repo.getDailyMacroTotals(7); // Last 7 days
 });
 
+// ============================================================================
+// WORKOUT PLANS & TEMPLATES
+// ============================================================================
+
 final activePlanProvider = FutureProvider.autoDispose<PrimePlan?>((ref) async {
   final repo = ref.watch(primeRepoProvider);
   return repo.getActivePlan();
 });
 
-final latestWorkoutTemplateProvider =
-    FutureProvider<WorkoutTemplateDoc?>((ref) async {
+final latestWorkoutTemplateProvider = FutureProvider<WorkoutTemplateDoc?>((ref) async {
   final repo = ref.read(primeRepoProvider);
   return repo.getLatestWorkoutTemplate();
 });
 
+// ============================================================================
+// TODAY'S WORKOUT SESSION
+// ============================================================================
+
 final todayWorkoutDayProvider = FutureProvider<int?>((ref) async {
   final repo = ref.read(primeRepoProvider);
-
   final template = await repo.getLatestWorkoutTemplate();
   if (template == null) return null;
-
+  
   final daysPerWeek = template.daysPerWeek;
-
   final last = await repo.getLatestWorkoutSession();
   if (last == null) return 1;
-
+  
   bool isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
-
+  
   final now = DateTime.now();
-
+  
   // If today's session already exists and isn't completed, keep the same dayIndex.
   if (isSameDay(last.date, now) && last.completed == false) {
     return last.dayIndex;
   }
-
+  
   // If the last session is completed (today or earlier), advance to next day.
   if (last.completed == true) {
     final next = last.dayIndex + 1;
     return next > daysPerWeek ? 1 : next;
   }
-
+  
   // If last session isn't completed and it's from a previous day, keep it (carry forward).
   return last.dayIndex;
 });
@@ -88,5 +111,118 @@ final thisWeekSessionsProvider = FutureProvider.autoDispose<List<dynamic>>((ref)
   final repo = ref.watch(primeRepoProvider);
   return repo.getThisWeekSessions();
 });
+
+// ============================================================================
+// WORKOUT CALENDAR & HISTORY
+// ============================================================================
+
+// Calendar month navigation state
+final selectedCalendarMonthProvider = StateProvider<DateTime>((ref) {
+  return DateTime.now();
+});
+
+// Monthly workout sessions (for calendar grid)
+final monthlyWorkoutSessionsProvider = FutureProvider.autoDispose.family<List<WorkoutSessionDoc>, DateTime>((ref, month) async {
+  final repo = ref.watch(primeRepoProvider);
+  return repo.getWorkoutSessionsForMonth(month);
+});
+
+// Specific day's workout session
+final dayWorkoutSessionProvider = FutureProvider.autoDispose.family<WorkoutSessionDoc?, DateTime>((ref, date) async {
+  final repo = ref.watch(primeRepoProvider);
+  return repo.getWorkoutSessionForDate(date);
+});
+
+// Missed workouts count (this week) - smart miss tracking
+final missedWorkoutsThisWeekProvider = FutureProvider.autoDispose<int>((ref) async {
+  final repo = ref.watch(primeRepoProvider);
+  final template = await repo.getLatestWorkoutTemplate();
+  if (template == null) return 0;
+  
+  final startOfWeek = _getStartOfWeek(DateTime.now());
+  return repo.getMissedWorkoutsCount(
+    startDate: startOfWeek,
+    scheduledDaysPerWeek: template.daysPerWeek,
+  );
+});
+
+DateTime _getStartOfWeek(DateTime date) {
+  return DateTime(date.year, date.month, date.day).subtract(
+    Duration(days: date.weekday - 1),
+  );
+}
+
+// ============================================================================
+// WOMEN'S HEALTH (KEY DIFFERENTIATOR)
+// ============================================================================
+
+// Current cycle phase (for cycle-aware training)
+final currentCyclePhaseProvider = FutureProvider.autoDispose<CyclePhase?>((ref) async {
+  final profile = await ref.watch(userProfileProvider.future);
+  if (profile?.lastPeriodDate == null || profile?.cycleLength == null) {
+    return null;
+  }
+
+  return _calculateCyclePhase(
+    profile!.lastPeriodDate!,
+    profile.cycleLength,
+  );
+});
+
+CyclePhase? _calculateCyclePhase(DateTime lastPeriodDate, int avgCycleLength) {
+  final now = DateTime.now();
+  final daysSinceLastPeriod = now.difference(lastPeriodDate).inDays;
+  final currentDay = (daysSinceLastPeriod % avgCycleLength) + 1;
+  
+  if (currentDay <= 5) {
+    return CyclePhase.menstrual;
+  } else if (currentDay <= avgCycleLength ~/ 2 - 3) {
+    return CyclePhase.follicular;
+  } else if (currentDay <= avgCycleLength ~/ 2 + 3) {
+    return CyclePhase.ovulation;
+  } else {
+    return CyclePhase.luteal;
+  }
+}
+
+enum CyclePhase { menstrual, follicular, ovulation, luteal }
+
+// Post-partum status (for post-partum guidance)
+final postpartumStatusProvider = FutureProvider.autoDispose<PostpartumStatus?>((ref) async {
+  final profile = await ref.watch(userProfileProvider.future);
+  if (profile?.deliveryDate == null) return null;
+  
+  final weeksPostpartum = DateTime.now().difference(profile!.deliveryDate!).inDays ~/ 7;
+  
+  return PostpartumStatus(
+    weeksPostpartum: weeksPostpartum,
+    medicalClearance: profile.medicalClearance ?? false,
+    deliveryDate: profile.deliveryDate!,
+  );
+});
+
+class PostpartumStatus {
+  final int weeksPostpartum;
+  final bool medicalClearance;
+  final DateTime deliveryDate;
+  
+  PostpartumStatus({
+    required this.weeksPostpartum,
+    required this.medicalClearance,
+    required this.deliveryDate,
+  });
+  
+  bool get needsClearance => weeksPostpartum >= 6 && !medicalClearance;
+  String get phaseDescription {
+    if (weeksPostpartum < 6) return "Early recovery (0-6 weeks)";
+    if (weeksPostpartum < 12) return "Gradual return (6-12 weeks)";
+    if (weeksPostpartum < 24) return "Rebuilding phase (3-6 months)";
+    return "Long-term recovery (6+ months)";
+  }
+}
+
+// ============================================================================
+// ANALYTICS & TRACKING
+// ============================================================================
 
 final analyticsProvider = Provider<AnalyticsService>((ref) => AnalyticsService());

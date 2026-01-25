@@ -13,6 +13,13 @@ class NutritionScreen extends ConsumerStatefulWidget {
 }
 
 class _NutritionScreenState extends ConsumerState<NutritionScreen> {
+  Future<void> _onRefresh() async {
+    ref.invalidate(activePlanProvider);
+    ref.invalidate(todayMealsStreamProvider);
+    // Wait a bit for the data to refresh
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -23,33 +30,36 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
       appBar: AppBar(
         title: const Text('Nutrition'),
       ),
-      body: Column(
-        children: [
-          // Daily Summary Card (always visible at top)
-          planAsync.when(
-            data: (plan) => mealsAsync.when(
-              data: (meals) => _DailySummaryCard(
-                plan: plan,
-                meals: meals,
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: Column(
+          children: [
+            // Daily Summary Card (always visible at top)
+            planAsync.when(
+              data: (plan) => mealsAsync.when(
+                data: (meals) => _DailySummaryCard(
+                  plan: plan,
+                  meals: meals,
+                ),
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
               loading: () => const LinearProgressIndicator(),
               error: (_, __) => const SizedBox.shrink(),
             ),
-            loading: () => const LinearProgressIndicator(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
 
-          const Divider(),
+            const Divider(),
 
-          // Meal Log List
-          Expanded(
-            child: mealsAsync.when(
-              data: (meals) => _MealLogList(meals: meals),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+            // Meal Log List
+            Expanded(
+              child: mealsAsync.when(
+                data: (meals) => _MealLogList(meals: meals),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddMealDialog(context),
@@ -336,49 +346,96 @@ class _MealCard extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(
-          meal.description ?? 'Meal',
-          style: theme.textTheme.bodyMedium,
-        ),
-        subtitle: Text(
-          'P: ${meal.proteinG}g  C: ${meal.carbsG}g  F: ${meal.fatG}g',
-          style: theme.textTheme.bodySmall,
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, size: 20),
-          onPressed: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Delete meal?'),
-                content: const Text('This cannot be undone.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel'),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showEditMealDialog(context, ref),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meal.description ?? 'Meal',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'P: ${meal.proteinG}g  C: ${meal.carbsG}g  F: ${meal.fatG}g  •  ${meal.calories} kcal',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    tooltip: 'Edit meal',
+                    onPressed: () => _showEditMealDialog(context, ref),
                   ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Delete'),
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: theme.colorScheme.error,
+                    ),
+                    tooltip: 'Delete meal',
+                    onPressed: () => _confirmDelete(context, ref),
                   ),
                 ],
               ),
-            );
-
-            if (confirm == true) {
-              // Track analytics
-              final analytics = ref.read(analyticsProvider);
-              await analytics.logMealDeleted(mealType: meal.mealType);
-  
-              final repo = ref.read(primeRepoProvider);
-              await repo.deleteMealLog(meal.id);
-              ref.invalidate(todayMealsStreamProvider);
-            }
-          },
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _showEditMealDialog(BuildContext context, WidgetRef ref) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => _EditMealDialog(meal: meal),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete meal?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Track analytics
+      final analytics = ref.read(analyticsProvider);
+      await analytics.logMealDeleted(mealType: meal.mealType);
+
+      final repo = ref.read(primeRepoProvider);
+      await repo.deleteMealLog(meal.id);
+      ref.invalidate(todayMealsStreamProvider);
+    }
   }
 }
 
@@ -539,6 +596,215 @@ class _AddMealDialogState extends ConsumerState<_AddMealDialog> {
         FilledButton(
           onPressed: _save,
           child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+// Edit Meal Dialog
+class _EditMealDialog extends ConsumerStatefulWidget {
+  final MealLog meal;
+
+  const _EditMealDialog({required this.meal});
+
+  @override
+  ConsumerState<_EditMealDialog> createState() => _EditMealDialogState();
+}
+
+class _EditMealDialogState extends ConsumerState<_EditMealDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _descCtrl;
+  late TextEditingController _proteinCtrl;
+  late TextEditingController _carbsCtrl;
+  late TextEditingController _fatCtrl;
+
+  late String _mealType;
+
+  @override
+  void initState() {
+    super.initState();
+    _mealType = widget.meal.mealType;
+    _descCtrl = TextEditingController(text: widget.meal.description ?? '');
+    _proteinCtrl = TextEditingController(text: widget.meal.proteinG.toString());
+    _carbsCtrl = TextEditingController(text: widget.meal.carbsG.toString());
+    _fatCtrl = TextEditingController(text: widget.meal.fatG.toString());
+  }
+
+  @override
+  void dispose() {
+    _descCtrl.dispose();
+    _proteinCtrl.dispose();
+    _carbsCtrl.dispose();
+    _fatCtrl.dispose();
+    super.dispose();
+  }
+
+  int? _tryInt(String s) => int.tryParse(s.trim());
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Update the meal object
+    final updatedMeal = MealLog()
+      ..id = widget.meal.id // Keep the same ID to update
+      ..ts = widget.meal.ts // Keep original timestamp
+      ..mealType = _mealType
+      ..proteinG = int.parse(_proteinCtrl.text.trim())
+      ..carbsG = int.parse(_carbsCtrl.text.trim())
+      ..fatG = int.parse(_fatCtrl.text.trim())
+      ..description = _descCtrl.text.trim().isEmpty
+          ? null
+          : _descCtrl.text.trim();
+
+    final repo = ref.read(primeRepoProvider);
+    await repo.updateMealLog(updatedMeal);
+
+    // Track analytics
+    final analytics = ref.read(analyticsProvider);
+    await analytics.logFeatureUsed(featureName: 'meal_edited');
+
+    ref.invalidate(todayMealsStreamProvider);
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Meal updated')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Calculate current calories preview
+    final protein = _tryInt(_proteinCtrl.text) ?? 0;
+    final carbs = _tryInt(_carbsCtrl.text) ?? 0;
+    final fat = _tryInt(_fatCtrl.text) ?? 0;
+    final calories = (protein * 4) + (carbs * 4) + (fat * 9);
+
+    return AlertDialog(
+      title: const Text('Edit Meal'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: _mealType,
+                decoration: const InputDecoration(labelText: 'Meal Type'),
+                items: const [
+                  DropdownMenuItem(value: 'breakfast', child: Text('Breakfast')),
+                  DropdownMenuItem(value: 'lunch', child: Text('Lunch')),
+                  DropdownMenuItem(value: 'dinner', child: Text('Dinner')),
+                  DropdownMenuItem(value: 'snack', child: Text('Snack')),
+                ],
+                onChanged: (v) => setState(() => _mealType = v ?? 'breakfast'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  hintText: 'e.g. Chicken rice',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _proteinCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Protein (g)',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final n = _tryInt(v ?? '');
+                        if (n == null) return 'Required';
+                        if (n < 0 || n > 300) return 'Invalid';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _carbsCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Carbs (g)',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final n = _tryInt(v ?? '');
+                        if (n == null) return 'Required';
+                        if (n < 0 || n > 500) return 'Invalid';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _fatCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Fat (g)',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final n = _tryInt(v ?? '');
+                        if (n == null) return 'Required';
+                        if (n < 0 || n > 200) return 'Invalid';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Calories preview
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$calories kcal',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: const Text('Update'),
         ),
       ],
     );

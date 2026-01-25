@@ -7,11 +7,26 @@ import '../widgets/cycle_phase_card.dart';
 import '../widgets/postpartum_status_card.dart';
 import '../widgets/macro_adherence_card.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _onRefresh() async {
+    ref.invalidate(userProfileProvider);
+    ref.invalidate(latestWorkoutTemplateProvider);
+    ref.invalidate(latestCheckInsStreamProvider);
+    ref.invalidate(weeklyMacroTotalsProvider);
+    ref.invalidate(thisWeekSessionsProvider);
+    // Wait a bit for the data to refresh
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final profileAsync = ref.watch(userProfileProvider);
     final workoutTemplateAsync = ref.watch(latestWorkoutTemplateProvider);
@@ -21,9 +36,12 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('PrimeForm'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Greeting Section
@@ -85,6 +103,7 @@ class HomeScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
           ],
+        ),
         ),
       ),
     );

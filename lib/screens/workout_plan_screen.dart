@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/providers.dart';
 import 'workout_lock_explanation_screen.dart';
 import '../services/analytics_service.dart';
+import '../widgets/generating_overlay.dart';
 
 class WorkoutPlanScreen extends ConsumerStatefulWidget {
   const WorkoutPlanScreen({super.key});
@@ -196,17 +197,34 @@ class _WorkoutPlanScreenState extends ConsumerState<WorkoutPlanScreen> {
                             });
 
                             try {
-                              final res = await repo.generateWorkoutTemplate(
-                                sex: sex,
-                                level: level,
-                                equipment: equipment,
-                                daysPerWeek: daysPerWeek,
-                                sessionDurationMin: 60,
-                                constraints: 'none',
+                              // Show generating overlay while AI works
+                              final res = await showGeneratingOverlay<Map<String, dynamic>>(
+                                context: context,
+                                title: 'Creating Your Workout Plan',
+                                subtitle: 'Our AI is designing a personalized program for you',
+                                tips: [
+                                  'Analyzing your experience level...',
+                                  'Selecting exercises for $equipment...',
+                                  'Building $daysPerWeek-day split...',
+                                  'Optimizing volume and intensity...',
+                                  'Adding progression protocols...',
+                                  'Balancing muscle groups...',
+                                ],
+                                task: () async {
+                                  return await repo.generateWorkoutTemplate(
+                                    sex: sex,
+                                    level: level,
+                                    equipment: equipment,
+                                    daysPerWeek: daysPerWeek,
+                                    sessionDurationMin: 60,
+                                    constraints: 'none',
+                                  );
+                                },
                               );
+
                               setState(() => response = res);
                               // Track analytics
-                              if (res['ok'] == true) {
+                              if (res?['ok'] == true) {
                                 final analytics = AnalyticsService();
                                 await analytics.logWorkoutPlanGenerated(
                                   level: level,

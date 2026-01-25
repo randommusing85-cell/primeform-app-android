@@ -54,6 +54,14 @@ class PrimeRepo {
     });
   }
 
+  /// Update an existing meal log
+  Future<void> updateMealLog(MealLog meal) async {
+    final isar = await IsarDb.instance();
+    await isar.writeTxn(() async {
+      await isar.mealLogs.put(meal);
+    });
+  }
+
   /// Get all meals for today
   Future<List<MealLog>> getTodayMeals() async {
     final isar = await IsarDb.instance();
@@ -291,12 +299,47 @@ class PrimeRepo {
     return session;
   }
 
-  Future<void> completeSession(Id sessionId) async {
+  Future<void> completeSession(Id sessionId, {String? notes}) async {
     final isar = await IsarDb.instance();
     final session = await isar.workoutSessionDocs.get(sessionId);
     if (session == null) return;
 
     session.completed = true;
+    if (notes != null && notes.isNotEmpty) {
+      session.notes = notes;
+    }
+
+    await isar.writeTxn(() async {
+      await isar.workoutSessionDocs.put(session);
+    });
+  }
+
+  /// Skip a workout session with a reason
+  Future<void> skipSession({
+    required int dayIndex,
+    required String reason,
+  }) async {
+    final isar = await IsarDb.instance();
+
+    final session = WorkoutSessionDoc()
+      ..date = DateTime.now()
+      ..dayIndex = dayIndex
+      ..completed = false
+      ..skipped = true
+      ..skipReason = reason;
+
+    await isar.writeTxn(() async {
+      await isar.workoutSessionDocs.put(session);
+    });
+  }
+
+  /// Update notes for an existing session
+  Future<void> updateSessionNotes(Id sessionId, String notes) async {
+    final isar = await IsarDb.instance();
+    final session = await isar.workoutSessionDocs.get(sessionId);
+    if (session == null) return;
+
+    session.notes = notes;
 
     await isar.writeTxn(() async {
       await isar.workoutSessionDocs.put(session);
@@ -317,6 +360,64 @@ class PrimeRepo {
         .completedEqualTo(true)
         .findAll();
   }
+
+  /* =========================
+   * WORKOUT CALENDAR & HISTORY (v1.0)
+   * ========================= */
+
+  /// Get all workout sessions for a specific month (for calendar view)
+  Future<List<WorkoutSessionDoc>> getWorkoutSessionsForMonth(
+    DateTime month,
+  ) async {
+    final isar = await IsarDb.instance();
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+    
+    return isar.workoutSessionDocs
+        .filter()
+        .dateBetween(start, end)
+        .sortByDateDesc()
+        .findAll();
+  }
+
+  /// Get workout session for a specific date (for day detail view)
+  Future<WorkoutSessionDoc?> getWorkoutSessionForDate(DateTime date) async {
+    final isar = await IsarDb.instance();
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    
+    return isar.workoutSessionDocs
+        .filter()
+        .dateBetween(startOfDay, endOfDay)
+        .findFirst();
+  }
+
+  /// Get missed workouts count (smart miss tracking - only counts scheduled days)
+  Future<int> getMissedWorkoutsCount({
+    required DateTime startDate,
+    required int scheduledDaysPerWeek,
+  }) async {
+    final isar = await IsarDb.instance();
+    final now = DateTime.now();
+    
+    // Get all sessions since startDate
+    final sessions = await isar.workoutSessionDocs
+        .filter()
+        .dateBetween(startDate, now)
+        .findAll();
+    
+    // Count completed sessions
+    final completedCount = sessions.where((s) => s.completed == true).length;
+    
+    // Calculate expected sessions (days elapsed * scheduled frequency / 7)
+    final daysElapsed = now.difference(startDate).inDays;
+    final weeksElapsed = daysElapsed / 7;
+    final expectedSessions = (weeksElapsed * scheduledDaysPerWeek).ceil();
+    
+    // Missed = expected - completed (clamped to 0)
+    return (expectedSessions - completedCount).clamp(0, expectedSessions);
+  }
+
 }
 
 /// Helper class for daily macro totals

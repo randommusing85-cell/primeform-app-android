@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/prime_plan.dart';
 import '../state/providers.dart';
 import '../services/analytics_service.dart';
+import '../widgets/generating_overlay.dart';
 
 class PlanScreen extends ConsumerStatefulWidget {
   const PlanScreen({super.key});
@@ -71,24 +72,37 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
     setState(() => _loading = true);
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('generatePlan');
-
-      final res = await callable.call({
-        "age": int.parse(_ageCtrl.text.trim()),
-        "sex": _sex,
-        "heightCm": int.parse(_heightCtrl.text.trim()),
-        "weightKg": double.parse(_weightCtrl.text.trim()),
-        "goal": _goal,
-        "daysPerWeek": _daysPerWeek,
-        "equipment": _equipment,
-      });
-
-      final data = Map<String, dynamic>.from(res.data as Map);
+      // Show generating overlay while AI works
+      final data = await showGeneratingOverlay<Map<String, dynamic>>(
+        context: context,
+        title: 'Creating Your Nutrition Plan',
+        subtitle: 'Our AI is crafting a personalized plan based on your goals',
+        tips: [
+          'Calculating your daily calorie needs...',
+          'Optimizing macro ratios for $_goal...',
+          'Adjusting for ${_daysPerWeek}x training...',
+          'Personalizing step targets...',
+          'Fine-tuning protein requirements...',
+        ],
+        task: () async {
+          final callable = FirebaseFunctions.instance.httpsCallable('generatePlan');
+          final res = await callable.call({
+            "age": int.parse(_ageCtrl.text.trim()),
+            "sex": _sex,
+            "heightCm": int.parse(_heightCtrl.text.trim()),
+            "weightKg": double.parse(_weightCtrl.text.trim()),
+            "goal": _goal,
+            "daysPerWeek": _daysPerWeek,
+            "equipment": _equipment,
+          });
+          return Map<String, dynamic>.from(res.data as Map);
+        },
+      );
 
       setState(() => _loading = false);
 
-      if (data["ok"] == true) {
-        final planJson = Map<String, dynamic>.from(data["plan"] as Map);
+      if (data?["ok"] == true) {
+        final planJson = Map<String, dynamic>.from(data!["plan"] as Map);
 
         // Track analytics
         final analytics = AnalyticsService();
@@ -97,7 +111,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
           calories: planJson['calories'] ?? 0,
           trainingDays: _daysPerWeek,
         );
-  
+
         // Show plan in popup dialog
         if (mounted) {
           final shouldSave = await showDialog<bool>(
@@ -112,7 +126,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
         }
       } else {
         // Show error
-        final raw = (data["raw"] ?? "Unknown error").toString();
+        final raw = (data?["raw"] ?? "Unknown error").toString();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Generation failed: $raw')),

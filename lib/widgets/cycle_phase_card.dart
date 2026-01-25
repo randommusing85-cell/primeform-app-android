@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/cycle_calculator.dart';
-import '../state/providers.dart';
+import '../state/providers.dart' hide CyclePhase;
 
 /// Displays current cycle phase with user-friendly language and education
 class CyclePhaseCard extends ConsumerWidget {
@@ -26,10 +26,10 @@ class CyclePhaseCard extends ConsumerWidget {
 
         final cycleDay = CycleCalculator.getCurrentCycleDay(profile);
         final guidance = CycleCalculator.getShortGuidance(phase);
-        
+
         // Get user-friendly info
         final phaseInfo = _getPhaseInfo(phase);
-        
+
         // Get phase color
         Color phaseColor;
         switch (phase) {
@@ -233,8 +233,8 @@ class CyclePhaseCard extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.lightbulb_outline, 
-                             size: 20, 
+                        Icon(Icons.lightbulb_outline,
+                             size: 20,
                              color: theme.colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
