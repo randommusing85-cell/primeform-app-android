@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
+import 'theme/app_theme.dart';
 import 'screens/app_shell.dart';
 import 'screens/plan_screen.dart';
 import 'screens/checkin_screen.dart';
@@ -20,6 +21,8 @@ import 'screens/notification_settings_screen.dart';
 import 'services/notification_service.dart';
 import 'state/providers.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/workout_coach_screen.dart';
+import 'screens/guided_setup_flow_screen.dart';
 import 'services/analytics_service.dart';
 
 void main() async {
@@ -41,10 +44,7 @@ class PrimeFormApp extends ConsumerWidget {
     return MaterialApp(
       title: 'PrimeForm',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const AppInitializer(),
       routes: {
         '/home': (context) => const AppShell(),
@@ -62,6 +62,8 @@ class PrimeFormApp extends ConsumerWidget {
         '/settings/injuries': (context) => const InjurySettingsScreen(),
         '/settings/notifications': (context) => const NotificationSettingsScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
+        '/workout-coach': (context) => const WorkoutCoachScreen(),
+        '/guided-setup': (context) => const GuidedSetupFlowScreen(),
       },
     );
   }

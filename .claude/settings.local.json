@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub run build_runner build:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(dir \"C:\\\\Users\\\\samji\\\\OneDrive\\\\Desktop\\\\Dev\\\\primeform\\\\primeform_app\\\\functions\")",
+      "Bash(dir:*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git pull:*)",
+      "Bash(flutter pub get:*)"
+    ]
+  }
+}

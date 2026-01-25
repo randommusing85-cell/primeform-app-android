@@ -222,6 +222,19 @@ class PrimeRepo {
     return isar.workoutTemplateDocs.where().sortByCreatedAtDesc().findFirst();
   }
 
+  /// Update an existing workout template's JSON (for exercise customization)
+  Future<void> updateWorkoutTemplateJson(Id templateId, String newJson) async {
+    final isar = await IsarDb.instance();
+    final doc = await isar.workoutTemplateDocs.get(templateId);
+    if (doc == null) return;
+
+    doc.json = newJson;
+
+    await isar.writeTxn(() async {
+      await isar.workoutTemplateDocs.put(doc);
+    });
+  }
+
   /* =========================
    * CLOUD FUNCTIONS
    * ========================= */

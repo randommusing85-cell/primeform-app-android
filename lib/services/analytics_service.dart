@@ -67,8 +67,8 @@ class AnalyticsService {
         'age_group': _getAgeGroup(age),
         'sex': sex,
         'goal': goal,
-        'tracks_cycle': tracksCycle,
-        'is_postpartum': isPostPartum,
+        'tracks_cycle': tracksCycle ? 'yes' : 'no',
+        'is_postpartum': isPostPartum ? 'yes' : 'no',
       },
     );
   }
@@ -138,7 +138,7 @@ class AnalyticsService {
         'protein_g': proteinG,
         'carbs_g': carbsG,
         'fat_g': fatG,
-        'has_description': hasDescription,
+        'has_description': hasDescription ? 'yes' : 'no',
         'total_calories': (proteinG * 4) + (carbsG * 4) + (fatG * 9),
       },
     );
@@ -274,7 +274,7 @@ class AnalyticsService {
         'weight_kg': weightKg.round(),
         'waist_cm': waistCm.round(),
         'steps_today': stepsToday,
-        'has_note': hasNote,
+        'has_note': hasNote ? 'yes' : 'no',
       },
     );
   }
@@ -481,5 +481,60 @@ class AnalyticsService {
 
   Future<void> logMedicalDisclaimerViewed() async {
     await _analytics.logEvent(name: 'medical_disclaimer_viewed');
+  }
+
+  // ===== PREMIUM & WAITLIST =====
+
+  Future<void> logPremiumFeatureTapped({
+    required String featureId,
+  }) async {
+    await _analytics.logEvent(
+      name: 'premium_feature_tapped',
+      parameters: {
+        'feature_id': featureId,
+      },
+    );
+  }
+
+  Future<void> logPremiumWaitlistViewed({
+    required String featureId,
+  }) async {
+    await _analytics.logEvent(
+      name: 'premium_waitlist_viewed',
+      parameters: {
+        'trigger_feature': featureId,
+      },
+    );
+  }
+
+  Future<void> logPremiumWaitlistJoined({
+    required String email,
+    required List<String> features,
+  }) async {
+    await _analytics.logEvent(
+      name: 'premium_waitlist_joined',
+      parameters: {
+        'num_features_selected': features.length,
+        'features': features.join(','),
+      },
+    );
+    // Also set user property
+    await _analytics.setUserProperty(
+      name: 'premium_waitlist',
+      value: 'joined',
+    );
+  }
+
+  Future<void> logPremiumGateEncountered({
+    required String featureId,
+    required String screen,
+  }) async {
+    await _analytics.logEvent(
+      name: 'premium_gate_encountered',
+      parameters: {
+        'feature_id': featureId,
+        'screen': screen,
+      },
+    );
   }
 }
